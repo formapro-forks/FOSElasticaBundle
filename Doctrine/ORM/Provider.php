@@ -14,8 +14,11 @@ namespace FOS\ElasticaBundle\Doctrine\ORM;
 use Doctrine\ORM\QueryBuilder;
 use FOS\ElasticaBundle\Doctrine\AbstractProvider;
 use FOS\ElasticaBundle\Exception\InvalidArgumentTypeException;
+use FOS\ElasticaBundle\Provider\ProviderV2Interface;
+use Pagerfanta\Adapter\CallbackAdapter;
+use Pagerfanta\Pagerfanta;
 
-class Provider extends AbstractProvider
+class Provider extends AbstractProvider implements ProviderV2Interface
 {
     const ENTITY_ALIAS = 'a';
 
@@ -125,5 +128,28 @@ class Provider extends AbstractProvider
         $arguments = [static::ENTITY_ALIAS] + $arguments;
 
         return call_user_func_array([$repository, $method], $arguments);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function pager(array $options = array())
+    {
+        $provider = $this;
+        $queryBuilder = $this->createQueryBuilder($options['query_builder_method']);
+        $manager = $this->managerRegistry->getManagerForClass($this->objectClass);
+
+        return new Pagerfanta(new CallbackAdapter(
+            function() use ($provider, $queryBuilder, $options) {
+                return $provider->countObjects($queryBuilder);
+            },
+            function($offset, $length) use ($provider, $queryBuilder, $manager, $options) {
+                if ($options['clear_object_manager']) {
+                    $manager->clear();
+                }
+
+                return $provider->fetchSlice($queryBuilder, $length, $offset);
+            }
+        ));
     }
 }

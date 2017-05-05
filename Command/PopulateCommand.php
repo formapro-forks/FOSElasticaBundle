@@ -15,7 +15,9 @@ use FOS\ElasticaBundle\Event\IndexPopulateEvent;
 use FOS\ElasticaBundle\Event\TypePopulateEvent;
 use FOS\ElasticaBundle\Index\IndexManager;
 use FOS\ElasticaBundle\Index\Resetter;
+use FOS\ElasticaBundle\Persister\PagerPersister;
 use FOS\ElasticaBundle\Provider\ProviderRegistry;
+use FOS\ElasticaBundle\Provider\ProviderV2Interface;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Helper\QuestionHelper;
@@ -192,7 +194,15 @@ class PopulateCommand extends ContainerAwareCommand
         $offset = $options['offset'];
         $provider = $this->providerRegistry->getProvider($index, $type);
         $loggerClosure = $this->progressClosureBuilder->build($output, 'Populating', $index, $type, $offset);
-        $provider->populate($loggerClosure, $event->getOptions());
+
+        if ($provider instanceof  ProviderV2Interface) {
+            $pager = $provider->pager($loggerClosure, $event->getOptions());
+
+            /** @var PagerPersister $pagerPersister */
+            $pagerPersister->insert($pager);
+        } else {
+            $provider->populate($loggerClosure, $event->getOptions());
+        }
 
         $this->dispatcher->dispatch(TypePopulateEvent::POST_TYPE_POPULATE, $event);
 
