@@ -14,19 +14,29 @@ class PagerPersister implements PagerPersisterInterface
     private $indexable;
 
     /**
-     * @param Indexable $indexable
+     * @var PersisterRegistry
      */
-    public function __construct(Indexable $indexable)
+    private $persisterRegistry;
+
+    /**
+     * @param Indexable $indexable
+     * @param PersisterRegistry $persisterRegistry
+     */
+    public function __construct(Indexable $indexable, PersisterRegistry $persisterRegistry)
     {
         $this->indexable = $indexable;
+        $this->persisterRegistry = $persisterRegistry;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function insert(Pagerfanta $pager, ObjectPersisterInterface $objectPersister, \Closure $loggerClosure = null, array $options = array())
+    public function insert(Pagerfanta $pager, \Closure $loggerClosure = null, array $options = array())
     {
         $nbObjects = $pager->getNbResults();
+
+
+        $objectPersister = $this->persisterRegistry->getPersister($options['indexName'], $options['typeName']);
 
         $page = $pager->getCurrentPage();
         for(;$page <= $pager->getNbPages(); $page++) {

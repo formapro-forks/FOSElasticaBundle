@@ -7,6 +7,7 @@
     <services>
         <service id="fos_elastica.pager_persister" class="FOS\ElasticaBundle\Persister\PagerPersister">
             <argument type="service" id="fos_elastica.indexable" />
+            <argument type="service" id="fos_elastica.persister_registry" />
         </service>
 
         <service id="fos_elastica.persister_registry" class="FOS\ElasticaBundle\Persister\PersisterRegistry">
