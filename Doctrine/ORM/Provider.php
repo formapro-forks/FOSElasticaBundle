@@ -133,7 +133,7 @@ class Provider extends AbstractProvider implements ProviderV2Interface
     /**
      * {@inheritdoc}
      */
-    public function pager(array $options = array())
+    public function provide(array $options = array())
     {
         $provider = $this;
         $queryBuilder = $this->createQueryBuilder($options['query_builder_method']);

@@ -16,6 +16,8 @@ use FOS\ElasticaBundle\Event\TypePopulateEvent;
 use FOS\ElasticaBundle\Index\IndexManager;
 use FOS\ElasticaBundle\Index\Resetter;
 use FOS\ElasticaBundle\Persister\PagerPersister;
+use FOS\ElasticaBundle\Persister\PagerPersisterInterface;
+use FOS\ElasticaBundle\Persister\PersisterRegistry;
 use FOS\ElasticaBundle\Provider\ProviderRegistry;
 use FOS\ElasticaBundle\Provider\ProviderV2Interface;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
@@ -52,12 +54,17 @@ class PopulateCommand extends ContainerAwareCommand
     private $providerRegistry;
 
     /**
+     * @var PersisterRegistry
+     */
+    private $persisterRegistry;
+
+    /**
      * @var Resetter
      */
     private $resetter;
 
     /**
-     * @see Symfony\Component\Console\Command\Command::configure()
+     * @see \Symfony\Component\Console\Command\Command::configure()
      */
     protected function configure()
     {
@@ -85,6 +92,7 @@ class PopulateCommand extends ContainerAwareCommand
         $this->indexManager = $this->getContainer()->get('fos_elastica.index_manager');
         $this->providerRegistry = $this->getContainer()->get('fos_elastica.provider_registry');
         $this->resetter = $this->getContainer()->get('fos_elastica.resetter');
+        $this->persisterRegistry = $this->getContainer()->get('fos_elastica.persister_registry');
         $this->progressClosureBuilder = new ProgressClosureBuilder();
 
         if (!$input->getOption('no-overwrite-format') && class_exists('Symfony\\Component\\Console\\Helper\\ProgressBar')) {
@@ -186,6 +194,8 @@ class PopulateCommand extends ContainerAwareCommand
         $event = new TypePopulateEvent($index, $type, $reset, $options);
         $this->dispatcher->dispatch(TypePopulateEvent::PRE_TYPE_POPULATE, $event);
 
+        $options = $event->getOptions();
+
         if ($event->isReset()) {
             $output->writeln(sprintf('<info>Resetting</info> <comment>%s/%s</comment>', $index, $type));
             $this->resetter->resetIndexType($index, $type);
@@ -196,12 +206,20 @@ class PopulateCommand extends ContainerAwareCommand
         $loggerClosure = $this->progressClosureBuilder->build($output, 'Populating', $index, $type, $offset);
 
         if ($provider instanceof  ProviderV2Interface) {
-            $pager = $provider->pager($loggerClosure, $event->getOptions());
+            $pager = $provider->provide($options);
 
-            /** @var PagerPersister $pagerPersister */
-            $pagerPersister->insert($pager);
+            /** @var PagerPersisterInterface $pagerPersiter */
+            $pagerPersiter = $this->getContainer()->get('fos_elastica.pager_persister');
+
+            /** @var PagerPersister $objectPersister */
+            $pagerPersiter->insert(
+                $pager,
+                $this->persisterRegistry->getPersister($index, $type),
+                $loggerClosure,
+                $options
+            );
         } else {
-            $provider->populate($loggerClosure, $event->getOptions());
+            $provider->populate($loggerClosure, $options);
         }
 
         $this->dispatcher->dispatch(TypePopulateEvent::POST_TYPE_POPULATE, $event);

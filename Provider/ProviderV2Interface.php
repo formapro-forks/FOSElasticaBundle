@@ -10,5 +10,5 @@ interface ProviderV2Interface
      *
      * @return Pagerfanta
      */
-    public function pager(array $options = array());
+    public function provide(array $options = array());
 }

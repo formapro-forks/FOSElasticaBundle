@@ -15,6 +15,8 @@ namespace FOS\ElasticaBundle\Provider;
  * Insert application domain objects into elastica types.
  *
  * @author Thibault Duplessis <thibault.duplessis@gmail.com>
+ *
+ * @deprecated
  */
 interface ProviderInterface
 {

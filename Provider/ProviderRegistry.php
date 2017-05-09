@@ -45,7 +45,7 @@ class ProviderRegistry implements ContainerAwareInterface
      *
      * Providers will be indexed by "index/type" strings in the returned array.
      *
-     * @return array of ProviderInterface instances
+     * @return ProviderInterface[]|ProviderV2Interface[]
      */
     public function getAllProviders()
     {
@@ -67,7 +67,7 @@ class ProviderRegistry implements ContainerAwareInterface
      *
      * @param string $index
      *
-     * @return ProviderInterface[]
+     * @return ProviderInterface[]||ProviderV2Interface[]
      *
      * @throws \InvalidArgumentException if no providers were registered for the index
      */
@@ -92,7 +92,7 @@ class ProviderRegistry implements ContainerAwareInterface
      * @param string $index
      * @param string $type
      *
-     * @return ProviderInterface
+     * @return ProviderInterface|ProviderV2Interface
      *
      * @throws \InvalidArgumentException if no provider was registered for the index and type
      */

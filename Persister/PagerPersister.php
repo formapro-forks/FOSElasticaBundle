@@ -6,46 +6,41 @@ use FOS\ElasticaBundle\Provider\Indexable;
 use Pagerfanta\Pagerfanta;
 use Elastica\Exception\Bulk\ResponseException as BulkResponseException;
 
-class PagerPersister
+class PagerPersister implements PagerPersisterInterface
 {
-    /**
-     * @var ObjectPersisterInterface
-     */
-    private $objectPersister;
-
     /**
      * @var Indexable
      */
     private $indexable;
 
     /**
-     * PagerPersister constructor.
-     * @param ObjectPersisterInterface $objectPersister
      * @param Indexable $indexable
      */
-    public function __construct(ObjectPersisterInterface $objectPersister, Indexable $indexable)
+    public function __construct(Indexable $indexable)
     {
-        $this->objectPersister = $objectPersister;
         $this->indexable = $indexable;
     }
 
-    public function insert(Pagerfanta $pager, \Closure $loggerClosure = null, array $options = array())
+    /**
+     * {@inheritdoc}
+     */
+    public function insert(Pagerfanta $pager, ObjectPersisterInterface $objectPersister, \Closure $loggerClosure = null, array $options = array())
     {
         $nbObjects = $pager->getNbResults();
-        $pager->setCurrentPage(1);
-        while (true) {
-            if ($pager->getNextPage()) {
-                return;
-            }
+
+        $page = $pager->getCurrentPage();
+        for(;$page <= $pager->getNbPages(); $page++) {
+            $pager->setCurrentPage($page);
 
             $sliceSize = $options['batch_size'];
+
             try {
-                $objects = $objects = $pager->getCurrentPageResults();
+                $objects = $pager->getCurrentPageResults();
                 $sliceSize = count($objects);
                 $objects = $this->filterObjects($options, $objects);
 
                 if (!empty($objects)) {
-                    $this->objectPersister->insertMany($objects);
+                    $objectPersister->insertMany($objects);
                 }
             } catch (BulkResponseException $e) {
                 if (!$options['ignore_errors']) {
@@ -64,8 +59,6 @@ class PagerPersister
             if (null !== $loggerClosure) {
                 $loggerClosure($sliceSize, $nbObjects);
             }
-
-            $pager->setCurrentPage($pager->getNextPage());
 
             usleep($options['sleep']);
         }

@@ -446,6 +446,8 @@ class FOSElasticaExtension extends Extension
             $serviceDef->replaceArgument($i, $argument);
         }
 
+        $serviceDef->addTag('fos_elastica.persister', ['index' => $indexName, 'type' => $typeName]);
+
         $container->setDefinition($serviceId, $serviceDef);
 
         return $serviceId;
